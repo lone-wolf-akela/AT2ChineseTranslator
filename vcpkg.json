@@ -1,0 +1,9 @@
+{
+  "name": "at2chinese",
+  "version-string": "0.0.1",
+  "dependencies": [
+    "ms-gsl",
+    "fmt",
+    "range-v3"
+  ]
+}
