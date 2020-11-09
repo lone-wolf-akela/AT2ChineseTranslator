@@ -99,30 +99,30 @@ namespace
 
 namespace locale
 {
-  std::string utf16_to_gbk(std::wstring_view s)
+  std::string utf16_to_gbk_impl(std::wstring_view s)
   {
     return utf16_to_ansi(s, 54936);
   }
-  std::wstring gbk_to_utf16(std::string_view s)
+  std::wstring gbk_to_utf16_impl(std::string_view s)
   {
     return ansi_to_utf16(s, 54936);
   }
-  std::string utf16_to_shiftjis(std::wstring_view s)
+  std::string utf16_to_shiftjis_impl(std::wstring_view s)
   {
     return utf16_to_ansi(s, 932);
   }
 
-  std::wstring shiftjis_to_utf16(std::string_view s)
+  std::wstring shiftjis_to_utf16_impl(std::string_view s)
   {
     return ansi_to_utf16(s, 932);
   }
 
-  std::wstring to_fullwidth(std::wstring_view s)
+  std::wstring to_fullwidth_impl(std::wstring_view s)
   {
     return width_conv(s, LCMAP_FULLWIDTH);
   }
 
-  std::wstring to_halfwidth(std::wstring_view s)
+  std::wstring to_halfwidth_impl(std::wstring_view s)
   {
     return width_conv(s, LCMAP_HALFWIDTH);
   }

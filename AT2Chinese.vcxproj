@@ -203,16 +203,18 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="memory_tool.cpp" />
     <ClCompile Include="translation.cpp" />
-    <ClCompile Include="translation.h" />
+    <ClInclude Include="translation.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
     <None Include="vcpkg.json" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="boost_hof_patched.h" />
     <ClInclude Include="console.h" />
     <ClInclude Include="localization.h" />
     <ClInclude Include="memory_tool.h" />
+    <ClInclude Include="util.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

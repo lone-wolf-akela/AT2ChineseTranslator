@@ -10,6 +10,8 @@
 #include <range/v3/all.hpp>
 #include <fmt/format.h>
 
+#include "util.h"
+
 #include "memory_tool.h"
 
 namespace 
@@ -73,32 +75,34 @@ namespace memory
     {
       if (is_valid_page(page))
       {
-        _pages.emplace_back(page.BaseAddress, page.RegionSize);
+        _pages.emplace_back(util::to_int(page.BaseAddress), page.RegionSize);
       }
       GSL_SUPPRESS(bounds.1)
       address += page.RegionSize;
     }
   }
-  std::vector<void*> Process::search(std::span<const std::byte> value)
+  std::vector<uintptr_t> Process::search(std::span<const std::byte> value)
   {
-    std::vector<void*> addrs;
+    std::vector<uintptr_t> addrs;
     for (const auto& page : _pages)
     {
       const auto data = _readpage(page);
       auto found = begin(data);
-      while ((found = std::search(found, end(data), begin(value), end(value))) != end(data))
-      {
-        addrs.emplace_back(static_cast<std::byte*>(page.address) + (found - begin(data)));
-        found++;
+      GSL_SUPPRESS(lifetime.1) {
+        while ((found = std::search(found, end(data), begin(value), end(value))) != end(data))
+        {
+          addrs.emplace_back(page.address + (found - begin(data)));
+          if ((found = next(found)) == end(data)) { break; }
+        }
       }
     }
     return addrs;
   }
-  std::vector<std::byte> Process::read(void* addr, size_t len)
+  std::vector<std::byte> Process::read(uintptr_t addr, size_t len)
   {
     std::vector<std::byte> data(len);
     SIZE_T bytes_read;
-    const auto r = ReadProcessMemory(_handle, addr, data.data(), len, &bytes_read);
+    const auto r = ReadProcessMemory(_handle, util::to_pointer(addr), data.data(), len, &bytes_read);
     if (r == FALSE)
     {
       bytes_read = 0;
@@ -106,21 +110,25 @@ namespace memory
     data.resize(bytes_read);
     return data;
   }
-  std::vector<std::byte> Process::read_until(void* addr, std::byte endding)
+  std::vector<std::byte> Process::read_until(uintptr_t addr, std::byte endding, size_t max_len)
   {
     std::vector<std::byte> data;
-    std::byte b;
-    SIZE_T bytes_read;
-    do
+    std::byte b{};
+    SIZE_T bytes_read{};
+
+    for (const uintptr_t p : ranges::views::iota(addr, addr + max_len))
     {
-      const auto r = ReadProcessMemory(_handle, addr, &b, 1, &bytes_read);
-      if (r == FALSE)
+      const auto r = ReadProcessMemory(_handle, util::to_pointer(p), &b, 1, &bytes_read);
+      if (r == FALSE || bytes_read == 0)
       {
         break;
       }
       data.emplace_back(b);
-      addr = static_cast<std::byte*>(addr) + 1;
-    } while (bytes_read != 0 && b != endding);
+      if (b == endding)
+      {
+        break;
+      }
+    }
     return data;
   }
   Process::~Process()

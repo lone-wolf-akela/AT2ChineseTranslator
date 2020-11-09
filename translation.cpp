@@ -8,6 +8,7 @@
 #include <stdexcept>
 
 #include <fmt/format.h>
+#include <gsl/gsl>
 
 #include "console.h"
 #include "localization.h"
@@ -17,9 +18,9 @@ namespace
 {
   struct Index
   {
-    std::string file;
-    size_t addr;
-    bool operator<(const Index& rhs) const
+    std::string file{};
+    size_t addr{};
+    bool operator<(const Index& rhs) const noexcept
     {
       return (file == rhs.file) ? (addr < rhs.addr) : (file < rhs.file);
     }
@@ -35,12 +36,11 @@ namespace
     }
   }
 
-  void emplace_data(std::vector<std::pair<Index, std::wstring>>& data, std::string&& text, Index&& idx)
+  void emplace_data(std::vector<std::pair<Index, std::wstring>>& data, std::string text, Index idx)
   {
     str_trim(text, "\r\n");
     str_trim(text, "{end}");
-    auto wtext = locale::gbk_to_utf16(text);
-    wtext = locale::to_fullwidth(wtext);
+    auto wtext = text | locale::gbk_to_utf16 | locale::to_fullwidth;
     data.emplace_back(std::make_pair(std::move(idx), std::move(wtext)));
   }
 
@@ -48,6 +48,7 @@ namespace
   {
     std::vector<std::pair<Index, std::wstring>> data;
 
+    GSL_SUPPRESS(lifetime.1)
     for (const auto& p : std::filesystem::directory_iterator(folder))
     {
       std::ifstream ifs(p.path());
@@ -70,7 +71,7 @@ namespace
         
         if (in_string && 3 == sscanf_s(temp.data(), "#### %d <#JMP($%x,$%x)>####", &idx, &p_from, &p_to))
         {
-          emplace_data(data, std::move(text), Index{ filename, p_from });
+          emplace_data(data, text, Index{ filename, p_from });
           text = "";
           in_string = false;
         }
@@ -91,7 +92,7 @@ namespace
           text += "\r\n";
         } 
       }
-      emplace_data(data, std::move(text), Index{ filename, p_from });
+      emplace_data(data, text, Index{ filename, p_from });
     }
     return data;
   }
@@ -113,32 +114,26 @@ namespace translation
     }
   }
 
-  void translate(std::wstring_view str_english)
+  void translate_impl(std::wstring_view str_english)
   {
     console::clear();
     const auto halfwidth = locale::to_halfwidth(str_english);
     fmt::print(L"{}\n", halfwidth);
     
-    Index idx;
     const auto en_str_fullw = locale::to_fullwidth(str_english);
-    try
-    {
-      idx = en_to_idx.at(en_str_fullw);
-    }
-    catch (std::out_of_range&)
+    const auto found_en = en_to_idx.find(en_str_fullw);
+    if (found_en == end(en_to_idx))
     {
       fmt::print(L"英文句库中未找到此句\n");
       return;
     }
-    try
-    {
-      const auto cn_text = idx_to_cn.at(idx);
-      fmt::print(L"{}\n", cn_text);
-    }
-    catch (std::out_of_range&)
+    const Index idx = found_en->second;
+    const auto found_cn = idx_to_cn.find(idx);
+    if (found_cn == end(idx_to_cn))
     {
       fmt::print(L"中文句库中未找到此句\n");
       return;
     }
+    fmt::print(L"{}\n", found_cn->second);
   }
 }

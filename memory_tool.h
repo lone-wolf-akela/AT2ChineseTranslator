@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <span>
+#include <limits>
 
 namespace memory
 {
@@ -14,7 +15,7 @@ namespace memory
 
   struct MemPage
   {
-    void* address;
+    uintptr_t address;
     size_t size;
   };
 
@@ -25,9 +26,9 @@ namespace memory
     void open_process() noexcept;
     void close_process() noexcept;
     void acquire_pages();
-    std::vector<void*> search(std::span<const std::byte> value);
-    std::vector<std::byte> read(void* addr, size_t len);
-    std::vector<std::byte> read_until(void* addr, std::byte endding);
+    std::vector<uintptr_t> search(std::span<const std::byte> value);
+    std::vector<std::byte> read(uintptr_t addr, size_t len);
+    std::vector<std::byte> read_until(uintptr_t addr, std::byte endding, size_t max_len = std::numeric_limits<size_t>::max());
 
     Process() = default;
     Process(const Process&) = delete;

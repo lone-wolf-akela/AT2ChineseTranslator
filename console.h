@@ -2,5 +2,5 @@
 
 namespace console
 {
-  void clear()  noexcept;
+  void clear() noexcept;
 }

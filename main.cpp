@@ -2,15 +2,16 @@
 #include <chrono>
 #include <string>
 #include <string_view>
+#include <iostream>
 
 #include <fmt/format.h>
 
 #include "memory_tool.h"
 #include "localization.h"
 #include "translation.h"
+#include "util.h"
 
 using namespace std::chrono_literals;
-using namespace std::string_literals;
 
 constexpr auto AnchorStr = L"Checking and loading saved data from the Memory Card ";
 
@@ -28,12 +29,11 @@ int main()
   }
   fmt::print(L"已找到pcsx2.exe\n");
   proc.open_process();
-  const auto fullwidth_anchor = locale::to_fullwidth(AnchorStr);
-  auto shiftjis_anchor = locale::utf16_to_shiftjis(fullwidth_anchor);
-  auto data_anchor = std::span<std::byte>(reinterpret_cast<std::byte*>(shiftjis_anchor.data()), shiftjis_anchor.size());
+  const auto shiftjis_anchor = AnchorStr | locale::to_fullwidth | locale::utf16_to_shiftjis;
+  const auto data_anchor = util::to_data(shiftjis_anchor);
 
-  std::vector<void*> p1;
-  std::vector<void*> p2;
+  std::vector<uintptr_t> p1;
+  std::vector<uintptr_t> p2;
   fmt::print(L"等待游戏启动...\n");
   while (true)
   {
@@ -56,20 +56,43 @@ int main()
     }
     std::this_thread::sleep_for(100ms);
   }
-  const auto addr = (p2.at(0) == p1.at(0)) ? p2.at(1) : p2.at(0);
-  fmt::print(L"找到文本内存地址: 0x{:x}\n", size_t(addr));
+  const auto textbox_addr = (p2.at(0) == p1.at(0)) ? p2.at(1) : p2.at(0);
+  fmt::print(L"找到文本内存地址: 0x{:x}\n", size_t(textbox_addr));
   std::string str;
+#if defined(_DEBUG)
+  while (true)
+  {
+    std::wstring input;
+    std::getline(std::wcin, input);
+    if (input.substr(0, 2) == L"0x")
+    {
+      const uintptr_t addr = std::stoul(input);
+      auto data = proc.read_until(addr, util::to_byte(0));
+      auto temp_str = util::to_strview(data);
+      fmt::print(L"{}\n", temp_str | locale::shiftjis_to_utf16 | locale::to_halfwidth);
+      continue;
+    }
+    const auto shiftjis = input | locale::to_fullwidth | locale::utf16_to_shiftjis;
+    const auto data = util::to_data(shiftjis);
+    proc.acquire_pages();
+    auto vec_p = proc.search(data);
+    for (auto ptr : vec_p)
+    {
+      fmt::print("0x{:x}\n", size_t(ptr));
+    }
+  }
+#endif
   while (true)
   {
     std::this_thread::sleep_for(100ms);
-    auto data = proc.read_until(addr, std::byte(0));
-    auto temp_str = std::string_view(reinterpret_cast<char*>(data.data()), data.size());
+    auto data = proc.read_until(textbox_addr, util::to_byte(0));
+    const auto temp_str = util::to_strview(data);
     if (str == temp_str)
     {
       continue;
     }
-    str = std::move(temp_str);
-    translation::translate(locale::shiftjis_to_utf16(str));
+    str = temp_str;
+    str | locale::shiftjis_to_utf16 | translation::translate;
   }
   return 0;
 }

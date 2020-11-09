@@ -10,7 +10,7 @@ namespace console
   {
     COORD topLeft = { 0, 0 };
     HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
-    CONSOLE_SCREEN_BUFFER_INFO screen;
+    CONSOLE_SCREEN_BUFFER_INFO screen{};
     DWORD written = 0;
 
     GetConsoleScreenBufferInfo(console, &screen);
