@@ -9,6 +9,7 @@
 #include <fcntl.h>
 
 #include <range/v3/all.hpp>
+#include <gsl/gsl>
 
 #include "localization.h"
 
@@ -20,7 +21,7 @@ namespace
       codepage,
       0,
       reinterpret_cast<LPCWCH>(s.data()),
-      s.size(),
+      gsl::narrow_cast<int>(s.size()),
       nullptr,
       0,
       nullptr,
@@ -32,9 +33,9 @@ namespace
       codepage,
       0,
       reinterpret_cast<LPCWCH>(s.data()),
-      s.size(),
+      gsl::narrow_cast<int>(s.size()),
       ansistr.data(),
-      ansistr.size(),
+      gsl::narrow_cast<int>(ansistr.size()),
       nullptr,
       nullptr
     );
@@ -46,7 +47,7 @@ namespace
       codepage,
       0,
       s.data(),
-      s.size(),
+      gsl::narrow_cast<int>(s.size()),
       nullptr,
       0
     );
@@ -56,9 +57,9 @@ namespace
       codepage,
       0,
       s.data(),
-      s.size(),
+      gsl::narrow_cast<int>(s.size()),
       reinterpret_cast<LPWSTR>(u16str.data()),
-      u16str.size()
+      gsl::narrow_cast<int>(u16str.size())
     );
     return u16str;
   }
@@ -69,7 +70,7 @@ namespace
       LOCALE_NAME_SYSTEM_DEFAULT,
       action,
       s.data(),
-      s.size(),
+      gsl::narrow_cast<int>(s.size()),
       nullptr,
       0,
       nullptr,
@@ -82,14 +83,14 @@ namespace
       LOCALE_NAME_SYSTEM_DEFAULT,
       action,
       s.data(),
-      s.size(),
+      gsl::narrow_cast<int>(s.size()),
       result.data(),
-      result.size(),
+      gsl::narrow_cast<int>(result.size()),
       nullptr,
       nullptr,
       0
     );
-    if (result.back() == L'\0')
+    if (result.size() > 0 && result.back() == L'\0')
     {
       result.pop_back();
     }

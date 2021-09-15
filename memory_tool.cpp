@@ -8,7 +8,6 @@
 
 #include <gsl/gsl>
 #include <range/v3/all.hpp>
-#include <fmt/format.h>
 
 #include "util.h"
 
